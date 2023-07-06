@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-// Copyright 2013-2021 BBC Research and Development
+// Copyright 2013-2023 BBC Research and Development
 //
 // Author: Chris Needham
 //
@@ -46,18 +46,27 @@ class GdImageRenderer
         GdImageRenderer& operator=(const GdImageRenderer&) = delete;
 
     public:
-        bool create(
-            const WaveformBuffer& buffer,
-            double start_time,
-            int image_width,
-            int image_height,
-            const WaveformColors& colors,
-            bool render_axis_labels,
+        bool setStartTime(double start_time);
+
+        bool setBarStyle(
+            int bar_width,
+            int bar_gap,
+            bool bar_style_rounded
+        );
+
+        void enableAxisLabels(bool render_axis_labels);
+
+        void setAmplitudeScale(
             bool auto_amplitude_scale,
             double amplitude_scale
         );
 
-        int createColor(const RGBA& color);
+        bool create(
+            const WaveformBuffer& buffer,
+            int image_width,
+            int image_height,
+            const WaveformColors& colors
+        );
 
         bool saveAsPng(
             const char* filename,
@@ -65,12 +74,36 @@ class GdImageRenderer
         ) const;
 
     private:
+        int createColor(const RGBA& color);
+
         void initColors(const WaveformColors& colors);
 
         void drawBackground() const;
         void drawBorder() const;
 
         void drawWaveform(const WaveformBuffer& buffer) const;
+        void drawWaveformBars(const WaveformBuffer& buffer) const;
+
+        void drawRoundedRectangle(
+            const int x1,
+            const int y1,
+            const int x2,
+            const int y2,
+            const int radius
+        ) const;
+
+        void drawRectangle(int left, int top, int right, int bottom) const;
+
+        void drawArc(
+            int centre_x,
+            int centre_y,
+            int width,
+            int height,
+            int start,
+            int end
+        ) const;
+
+        void drawLine(int x1, int y1, int x2, int y2) const;
 
         void drawTimeAxisLabels() const;
 
@@ -99,6 +132,11 @@ class GdImageRenderer
         int background_color_;
         int waveform_color_;
         int axis_label_color_;
+
+        bool waveform_style_bars_;
+        int bar_width_;
+        int bar_gap_;
+        bool bar_style_rounded_;
 
         bool render_axis_labels_;
 

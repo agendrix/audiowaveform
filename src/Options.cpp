@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-// Copyright 2013-2021 BBC Research and Development
+// Copyright 2013-2023 BBC Research and Development
 //
 // Author: Chris Needham
 //
@@ -25,6 +25,7 @@
 #include "Config.h"
 #include "Error.h"
 #include "FileFormat.h"
+#include "Log.h"
 #include "MathUtil.h"
 #include "Streams.h"
 #include "Rgba.h"
@@ -60,6 +61,8 @@ Options::Options() :
     image_height_(0),
     bits_(16),
     has_bits_(false),
+    bar_width_(1),
+    bar_gap_(0),
     render_axis_labels_(true),
     auto_amplitude_scale_(false),
     amplitude_scale_(1.0),
@@ -162,6 +165,22 @@ bool Options::parseCommandLine(int argc, const char* const* argv)
         "waveform-color",
         po::value<RGBA>(&waveform_color_),
         "wave color (rrggbb[aa])"
+    )(
+        "waveform-style",
+        po::value<std::string>(&waveform_style_)->default_value("normal"),
+        "waveform style (normal or bars)"
+    )(
+        "bar-width",
+        po::value<int>(&bar_width_)->default_value(8),
+        "bar width (pixels)"
+    )(
+        "bar-gap",
+        po::value<int>(&bar_gap_)->default_value(4),
+        "bar gap (pixels)"
+    )(
+        "bar-style",
+        po::value<std::string>(&bar_style_)->default_value("square"),
+        "bar style (square or rounded)"
     )(
         "axis-label-color",
         po::value<RGBA>(&axis_label_color_),
@@ -323,9 +342,9 @@ void Options::showVersion(std::ostream& stream) const
 
 void Options::reportError(const std::string& message) const
 {
-    error_stream << "Error: " << message
-                 << "\nSee '" << program_name_
-                 << " --help' for available options\n";
+    log(Error) << "Error: " << message
+               << "\nSee '" << program_name_
+               << " --help' for available options\n";
 }
 
 //------------------------------------------------------------------------------

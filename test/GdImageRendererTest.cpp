@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-// Copyright 2013-2019 BBC Research and Development
+// Copyright 2013-2023 BBC Research and Development
 //
 // Author: Chris Needham
 //
@@ -55,7 +55,12 @@ class GdImageRendererTest : public Test
         {
         }
 
-        void testImageRendering(bool axis_labels, const std::string& expected_output);
+        void testImageRendering(
+            bool axis_labels,
+            bool bars,
+            bool rounded,
+            const std::string& expected_output
+        );
 
         WaveformBuffer buffer_;
         GdImageRenderer renderer_;
@@ -63,7 +68,11 @@ class GdImageRendererTest : public Test
 
 //------------------------------------------------------------------------------
 
-void GdImageRendererTest::testImageRendering(bool axis_labels, const std::string& expected_output)
+void GdImageRendererTest::testImageRendering(
+    bool axis_labels,
+    bool bars,
+    bool rounded,
+    const std::string& expected_output)
 {
     const boost::filesystem::path filename = FileUtil::getTempFilename(".png");
 
@@ -77,7 +86,15 @@ void GdImageRendererTest::testImageRendering(bool axis_labels, const std::string
     const WaveformColors& colors = audacity_waveform_colors;
 
     GdImageRenderer renderer;
-    result = renderer.create(buffer, 5.0, 1000, 300, colors, axis_labels, false, 1.0); // zoom: 128
+
+    if (bars) {
+        renderer.setBarStyle(8, 4, rounded);
+    }
+
+    renderer.setStartTime(5.0);
+    renderer.enableAxisLabels(axis_labels);
+
+    result = renderer.create(buffer, 1000, 300, colors); // zoom: 128
     ASSERT_TRUE(result);
 
     result = renderer.saveAsPng(filename.c_str());
@@ -114,11 +131,12 @@ TEST_F(GdImageRendererTest, shouldRenderImageWithAxisLabels)
         "Start index: 1250\n"
         "Buffer size: 1774\n"
         "Axis labels: yes\n"
+        "Waveform style: normal\n"
         "Amplitude scale: 1\n"
         "Output file: "
     );
 
-    testImageRendering(true, expected_output);
+    testImageRendering(true, false, false, expected_output);
 }
 
 //------------------------------------------------------------------------------
@@ -140,11 +158,72 @@ TEST_F(GdImageRendererTest, shouldRenderImageWithoutAxisLabels)
         "Start index: 1250\n"
         "Buffer size: 1774\n"
         "Axis labels: no\n"
+        "Waveform style: normal\n"
         "Amplitude scale: 1\n"
         "Output file: "
     );
 
-    testImageRendering(false, expected_output);
+    testImageRendering(false, false, false, expected_output);
+}
+
+//------------------------------------------------------------------------------
+
+TEST_F(GdImageRendererTest, shouldRenderImageWithSquareBars)
+{
+    std::string expected_output(
+        "Input file: ../test/data/test_file_stereo_8bit_64spp_wav.dat\n"
+        "Channels: 1\n"
+        "Sample rate: 16000 Hz\n"
+        "Bits: 8\n"
+        "Samples per pixel: 64\n"
+        "Length: 1774 points\n"
+        "Image dimensions: 1000x300 pixels\n"
+        "Channels: 1\n"
+        "Sample rate: 16000 Hz\n"
+        "Samples per pixel: 64\n"
+        "Start time: 5 seconds\n"
+        "Start index: 1250\n"
+        "Buffer size: 1774\n"
+        "Axis labels: yes\n"
+        "Waveform style: bars\n"
+        "Bar width: 8\n"
+        "Bar gap: 4\n"
+        "Bar style: square\n"
+        "Amplitude scale: 1\n"
+        "Output file: "
+    );
+
+    testImageRendering(true, true, false, expected_output);
+}
+
+//------------------------------------------------------------------------------
+
+TEST_F(GdImageRendererTest, shouldRenderImageWithRoundedBars)
+{
+    std::string expected_output(
+        "Input file: ../test/data/test_file_stereo_8bit_64spp_wav.dat\n"
+        "Channels: 1\n"
+        "Sample rate: 16000 Hz\n"
+        "Bits: 8\n"
+        "Samples per pixel: 64\n"
+        "Length: 1774 points\n"
+        "Image dimensions: 1000x300 pixels\n"
+        "Channels: 1\n"
+        "Sample rate: 16000 Hz\n"
+        "Samples per pixel: 64\n"
+        "Start time: 5 seconds\n"
+        "Start index: 1250\n"
+        "Buffer size: 1774\n"
+        "Axis labels: yes\n"
+        "Waveform style: bars\n"
+        "Bar width: 8\n"
+        "Bar gap: 4\n"
+        "Bar style: rounded\n"
+        "Amplitude scale: 1\n"
+        "Output file: "
+    );
+
+    testImageRendering(true, true, true, expected_output);
 }
 
 //------------------------------------------------------------------------------
@@ -159,7 +238,8 @@ TEST_F(GdImageRendererTest, shouldReportErrorIfImageWidthIsLessThanMinimum)
     const WaveformColors& colors = audacity_waveform_colors;
 
     GdImageRenderer renderer;
-    bool result = renderer.create(buffer, 5.0, 0, 300, colors, true, false, 1.0);
+
+    bool result = renderer.create(buffer, 0, 300, colors);
 
     ASSERT_FALSE(result);
     ASSERT_TRUE(output.str().empty());
@@ -179,7 +259,8 @@ TEST_F(GdImageRendererTest, shouldReportErrorIfImageHeightIsLessThanMinimum)
     const WaveformColors& colors = audacity_waveform_colors;
 
     GdImageRenderer renderer;
-    bool result = renderer.create(buffer, 5.0, 800, 0, colors, true, false, 1.0);
+
+    bool result = renderer.create(buffer, 800, 0, colors);
 
     ASSERT_FALSE(result);
     ASSERT_TRUE(output.str().empty());
@@ -199,7 +280,8 @@ TEST_F(GdImageRendererTest, shouldReportErrorIfSampleRateIsZero)
     const WaveformColors& colors = audacity_waveform_colors;
 
     GdImageRenderer renderer;
-    bool result = renderer.create(buffer, 5.0, 800, 250, colors, true, false, 1.0);
+
+    bool result = renderer.create(buffer, 800, 250, colors);
 
     ASSERT_FALSE(result);
     ASSERT_TRUE(output.str().empty());
@@ -219,7 +301,8 @@ TEST_F(GdImageRendererTest, shouldReportErrorIfSampleRateIsNegative)
     const WaveformColors& colors = audacity_waveform_colors;
 
     GdImageRenderer renderer;
-    bool result = renderer.create(buffer, 5.0, 800, 250, colors, true, false, 1.0);
+
+    bool result = renderer.create(buffer, 800, 250, colors);
 
     ASSERT_FALSE(result);
     ASSERT_TRUE(output.str().empty());
@@ -239,7 +322,8 @@ TEST_F(GdImageRendererTest, shouldReportErrorIfScaleIsZero)
     const WaveformColors& colors = audacity_waveform_colors;
 
     GdImageRenderer renderer;
-    bool result = renderer.create(buffer, 5.0, 800, 250, colors, true, false, 1.0);
+
+    bool result = renderer.create(buffer, 800, 250, colors);
 
     ASSERT_FALSE(result);
     ASSERT_TRUE(output.str().empty());
@@ -259,7 +343,8 @@ TEST_F(GdImageRendererTest, shouldReportErrorIfScaleIsNegative)
     const WaveformColors& colors = audacity_waveform_colors;
 
     GdImageRenderer renderer;
-    bool result = renderer.create(buffer, 5.0, 800, 250, colors, true, false, 1.0);
+
+    bool result = renderer.create(buffer, 800, 250, colors);
 
     ASSERT_FALSE(result);
     ASSERT_TRUE(output.str().empty());
@@ -278,7 +363,8 @@ TEST_F(GdImageRendererTest, shouldReportErrorIfWaveformBufferIsEmpty)
     const WaveformColors& colors = audacity_waveform_colors;
 
     GdImageRenderer renderer;
-    bool result = renderer.create(buffer, 5.0, 800, 250, colors, true, false, 1.0);
+
+    bool result = renderer.create(buffer, 800, 250, colors);
 
     ASSERT_FALSE(result);
     ASSERT_TRUE(output.str().empty());
