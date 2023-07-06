@@ -469,10 +469,11 @@ void GdImageRenderer::drawRoundedRectangle(
     const int right_arc_x = right - radius;
     const int bottom_arc_y = bottom - radius;
 
-    if (bottom_arc_y > top_arc_y) {
-        // Draw the vertical bar
-        drawRectangle(left, top_arc_y, right, bottom_arc_y);
+    // Draw the vertical bar
+    drawRectangle(left, top_arc_y, right, bottom_arc_y);
 
+    // Only draw roundings if bar is high enough
+    if (bottom_arc_y > top_arc_y) {
         // Draw the top-left corner
         drawArc(left_arc_x, top_arc_y, radius * 2, radius * 2, 180, 270);
         // Draw the top-right corner
